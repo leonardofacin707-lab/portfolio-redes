@@ -1,0 +1,88 @@
+! ==========================================================
+! SW2 - Cisco 2960-24TT
+! Projeto 03 - Rede corporativa com VLANs
+! Setores: TI (VLAN 30) e VISITANTES (VLAN 40)
+! ==========================================================
+enable
+configure terminal
+hostname SW2
+no ip domain-lookup
+service password-encryption
+enable secret Cisco@Lab26
+banner motd # Acesso restrito. Somente pessoal autorizado. #
+ip domain-name empresa.lab
+username admin privilege 15 secret Cisco@Lab26
+!
+! ---------- VLANs (todas, pois o trunk carrega todas) ----------
+vlan 10
+ name FINANCEIRO
+vlan 20
+ name RH
+vlan 30
+ name TI
+vlan 40
+ name VISITANTES
+vlan 99
+ name GERENCIA
+vlan 999
+ name NAO-USADAS
+!
+! ---------- Portas de acesso ----------
+interface range FastEthernet0/1 - 10
+ description Portas da TI
+ switchport mode access
+ switchport access vlan 30
+ spanning-tree portfast
+ no shutdown
+!
+interface range FastEthernet0/11 - 20
+ description Portas de VISITANTES
+ switchport mode access
+ switchport access vlan 40
+ spanning-tree portfast
+ no shutdown
+!
+interface range FastEthernet0/21 - 24
+ description Portas nao usadas (desligadas por seguranca)
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+!
+! ---------- Trunk ----------
+interface GigabitEthernet0/2
+ description Trunk para SW1 G0/2
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,40,99
+!
+interface GigabitEthernet0/1
+ description Nao usada
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+!
+! ---------- Gerencia ----------
+interface Vlan99
+ description Gerencia do SW2
+ ip address 192.168.99.12 255.255.255.0
+ no shutdown
+!
+ip default-gateway 192.168.99.1
+!
+! ---------- SSH: so a TI administra ----------
+crypto key generate rsa general-keys modulus 1024
+ip ssh version 2
+access-list 10 permit 192.168.30.0 0.0.0.255
+!
+line console 0
+ login local
+ logging synchronous
+ exec-timeout 10 0
+!
+line vty 0 15
+ access-class 10 in
+ transport input ssh
+ login local
+ exec-timeout 10 0
+!
+end
+write memory

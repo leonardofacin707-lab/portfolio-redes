@@ -1,0 +1,123 @@
+! ==========================================================
+! R1-EMPRESA - Cisco 2911
+! Projeto 03 - Rede corporativa com VLANs
+! Funcoes: roteamento entre VLANs (router-on-a-stick), DHCP,
+!          ACLs de seguranca e SSH
+! ==========================================================
+enable
+configure terminal
+hostname R1-EMPRESA
+no ip domain-lookup
+service password-encryption
+enable secret Cisco@Lab26
+banner motd # Acesso restrito. Somente pessoal autorizado. #
+ip domain-name empresa.lab
+username admin privilege 15 secret Cisco@Lab26
+!
+! ---------- Interface fisica (trunk para o SW1) ----------
+interface GigabitEthernet0/0
+ description Trunk para SW1 G0/1
+ no ip address
+ no shutdown
+!
+! ---------- Subinterfaces: um gateway por VLAN ----------
+interface GigabitEthernet0/0.10
+ description VLAN 10 - FINANCEIRO
+ encapsulation dot1Q 10
+ ip address 192.168.10.1 255.255.255.0
+!
+interface GigabitEthernet0/0.20
+ description VLAN 20 - RH
+ encapsulation dot1Q 20
+ ip address 192.168.20.1 255.255.255.0
+!
+interface GigabitEthernet0/0.30
+ description VLAN 30 - TI
+ encapsulation dot1Q 30
+ ip address 192.168.30.1 255.255.255.0
+!
+interface GigabitEthernet0/0.40
+ description VLAN 40 - VISITANTES
+ encapsulation dot1Q 40
+ ip address 192.168.40.1 255.255.255.0
+!
+interface GigabitEthernet0/0.99
+ description VLAN 99 - GERENCIA dos switches
+ encapsulation dot1Q 99
+ ip address 192.168.99.1 255.255.255.0
+!
+! ---------- "Internet" simulada ----------
+interface Loopback0
+ description Internet simulada
+ ip address 8.8.8.8 255.255.255.255
+!
+! ---------- DHCP (um pool por VLAN) ----------
+ip dhcp excluded-address 192.168.10.1 192.168.10.10
+ip dhcp excluded-address 192.168.20.1 192.168.20.10
+ip dhcp excluded-address 192.168.30.1 192.168.30.20
+ip dhcp excluded-address 192.168.40.1 192.168.40.10
+!
+ip dhcp pool VLAN10-FINANCEIRO
+ network 192.168.10.0 255.255.255.0
+ default-router 192.168.10.1
+ dns-server 192.168.30.10
+!
+ip dhcp pool VLAN20-RH
+ network 192.168.20.0 255.255.255.0
+ default-router 192.168.20.1
+ dns-server 192.168.30.10
+!
+ip dhcp pool VLAN30-TI
+ network 192.168.30.0 255.255.255.0
+ default-router 192.168.30.1
+ dns-server 192.168.30.10
+!
+ip dhcp pool VLAN40-VISITANTES
+ network 192.168.40.0 255.255.255.0
+ default-router 192.168.40.1
+ dns-server 8.8.8.8
+!
+! ---------- ACL: Visitantes so acessam a Internet ----------
+ip access-list extended VISITANTES-IN
+ remark Permite pedir IP (DHCP)
+ permit udp any any eq bootps
+ remark Permite ping no proprio gateway (diagnostico)
+ permit icmp 192.168.40.0 0.0.0.255 host 192.168.40.1
+ remark Bloqueia todas as redes internas da empresa
+ deny ip 192.168.40.0 0.0.0.255 192.168.0.0 0.0.255.255
+ remark Libera o resto (Internet)
+ permit ip 192.168.40.0 0.0.0.255 any
+!
+! ---------- ACL: RH nao acessa o Financeiro ----------
+ip access-list extended RH-IN
+ remark Bloqueia RH -> Financeiro
+ deny ip 192.168.20.0 0.0.0.255 192.168.10.0 0.0.0.255
+ remark Libera o resto
+ permit ip any any
+!
+! ACL estendida fica perto da ORIGEM, na entrada da subinterface
+interface GigabitEthernet0/0.20
+ ip access-group RH-IN in
+!
+interface GigabitEthernet0/0.40
+ ip access-group VISITANTES-IN in
+!
+! ---------- SSH: so a TI administra o roteador ----------
+crypto key generate rsa general-keys modulus 1024
+ip ssh version 2
+access-list 10 remark Somente a rede da TI pode administrar
+access-list 10 permit 192.168.30.0 0.0.0.255
+!
+line console 0
+ login local
+ logging synchronous
+ exec-timeout 10 0
+!
+line vty 0 4
+ access-class 10 in
+ transport input ssh
+ login local
+ exec-timeout 10 0
+!
+end
+write memory

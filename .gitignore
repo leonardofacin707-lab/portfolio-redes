@@ -1,0 +1,8 @@
+# Senhas e dados locais do Pi-hole (nunca publicar)
+.env
+05-pihole-dns/etc-pihole/
+
+# Arquivos temporarios
+*.bak
+*.tmp
+__pycache__/

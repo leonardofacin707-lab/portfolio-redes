@@ -1,0 +1,55 @@
+! ==========================================================
+! R-RJ - Filial Rio de Janeiro - Cisco 2911
+! Projeto 04 - WAN com OSPF e redundancia
+! ==========================================================
+enable
+configure terminal
+hostname R-RJ
+no ip domain-lookup
+service password-encryption
+enable secret Cisco@Lab26
+banner motd # R-RJ - Filial Rio de Janeiro - acesso restrito #
+!
+interface Loopback0
+ description Identificador do roteador (router-id)
+ ip address 2.2.2.2 255.255.255.255
+!
+interface GigabitEthernet0/0
+ description LAN da Filial Rio de Janeiro
+ ip address 192.168.2.1 255.255.255.0
+ no shutdown
+!
+interface GigabitEthernet0/1
+ description WAN principal para R-SP (10.0.0.0/30)
+ ip address 10.0.0.2 255.255.255.252
+ ip ospf authentication message-digest
+ ip ospf message-digest-key 1 md5 OspfLab26
+ no shutdown
+!
+interface GigabitEthernet0/2
+ description WAN BACKUP para R-BH (10.0.0.8/30) - custo alto
+ ip address 10.0.0.9 255.255.255.252
+ ip ospf authentication message-digest
+ ip ospf message-digest-key 1 md5 OspfLab26
+ ip ospf cost 100
+ no shutdown
+!
+ip dhcp excluded-address 192.168.2.1 192.168.2.10
+ip dhcp pool LAN-RJ
+ network 192.168.2.0 255.255.255.0
+ default-router 192.168.2.1
+ dns-server 192.168.1.10
+!
+router ospf 1
+ router-id 2.2.2.2
+ passive-interface GigabitEthernet0/0
+ network 2.2.2.2 0.0.0.0 area 0
+ network 192.168.2.0 0.0.0.255 area 0
+ network 10.0.0.0 0.0.0.3 area 0
+ network 10.0.0.8 0.0.0.3 area 0
+!
+line console 0
+ logging synchronous
+!
+end
+write memory

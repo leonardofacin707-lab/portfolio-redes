@@ -1,0 +1,55 @@
+! ==========================================================
+! R-BH - Filial Belo Horizonte - Cisco 2911
+! Projeto 04 - WAN com OSPF e redundancia
+! ==========================================================
+enable
+configure terminal
+hostname R-BH
+no ip domain-lookup
+service password-encryption
+enable secret Cisco@Lab26
+banner motd # R-BH - Filial Belo Horizonte - acesso restrito #
+!
+interface Loopback0
+ description Identificador do roteador (router-id)
+ ip address 3.3.3.3 255.255.255.255
+!
+interface GigabitEthernet0/0
+ description LAN da Filial Belo Horizonte
+ ip address 192.168.3.1 255.255.255.0
+ no shutdown
+!
+interface GigabitEthernet0/1
+ description WAN principal para R-SP (10.0.0.4/30)
+ ip address 10.0.0.6 255.255.255.252
+ ip ospf authentication message-digest
+ ip ospf message-digest-key 1 md5 OspfLab26
+ no shutdown
+!
+interface GigabitEthernet0/2
+ description WAN BACKUP para R-RJ (10.0.0.8/30) - custo alto
+ ip address 10.0.0.10 255.255.255.252
+ ip ospf authentication message-digest
+ ip ospf message-digest-key 1 md5 OspfLab26
+ ip ospf cost 100
+ no shutdown
+!
+ip dhcp excluded-address 192.168.3.1 192.168.3.10
+ip dhcp pool LAN-BH
+ network 192.168.3.0 255.255.255.0
+ default-router 192.168.3.1
+ dns-server 192.168.1.10
+!
+router ospf 1
+ router-id 3.3.3.3
+ passive-interface GigabitEthernet0/0
+ network 3.3.3.3 0.0.0.0 area 0
+ network 192.168.3.0 0.0.0.255 area 0
+ network 10.0.0.4 0.0.0.3 area 0
+ network 10.0.0.8 0.0.0.3 area 0
+!
+line console 0
+ logging synchronous
+!
+end
+write memory

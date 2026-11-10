@@ -1,0 +1,54 @@
+! ==========================================================
+! R-SP - Matriz Sao Paulo - Cisco 2911
+! Projeto 04 - WAN com OSPF e redundancia
+! ==========================================================
+enable
+configure terminal
+hostname R-SP
+no ip domain-lookup
+service password-encryption
+enable secret Cisco@Lab26
+banner motd # R-SP - Matriz Sao Paulo - acesso restrito #
+!
+interface Loopback0
+ description Identificador do roteador (router-id)
+ ip address 1.1.1.1 255.255.255.255
+!
+interface GigabitEthernet0/0
+ description LAN da Matriz Sao Paulo
+ ip address 192.168.1.1 255.255.255.0
+ no shutdown
+!
+interface GigabitEthernet0/1
+ description WAN principal para R-RJ (10.0.0.0/30)
+ ip address 10.0.0.1 255.255.255.252
+ ip ospf authentication message-digest
+ ip ospf message-digest-key 1 md5 OspfLab26
+ no shutdown
+!
+interface GigabitEthernet0/2
+ description WAN principal para R-BH (10.0.0.4/30)
+ ip address 10.0.0.5 255.255.255.252
+ ip ospf authentication message-digest
+ ip ospf message-digest-key 1 md5 OspfLab26
+ no shutdown
+!
+ip dhcp excluded-address 192.168.1.1 192.168.1.20
+ip dhcp pool LAN-SP
+ network 192.168.1.0 255.255.255.0
+ default-router 192.168.1.1
+ dns-server 192.168.1.10
+!
+router ospf 1
+ router-id 1.1.1.1
+ passive-interface GigabitEthernet0/0
+ network 1.1.1.1 0.0.0.0 area 0
+ network 192.168.1.0 0.0.0.255 area 0
+ network 10.0.0.0 0.0.0.3 area 0
+ network 10.0.0.4 0.0.0.3 area 0
+!
+line console 0
+ logging synchronous
+!
+end
+write memory

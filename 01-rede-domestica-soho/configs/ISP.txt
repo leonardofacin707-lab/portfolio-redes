@@ -1,0 +1,31 @@
+! ==========================================================
+! Roteador da operadora (ISP) - Cisco 2911
+! Projeto 01 - Rede domestica SOHO
+! Cole no CLI do roteador (aba CLI, depois de "Press RETURN")
+! ==========================================================
+enable
+configure terminal
+hostname ISP
+no ip domain-lookup
+enable secret Cisco@Lab26
+banner motd # Roteador da operadora - acesso restrito #
+!
+interface GigabitEthernet0/0
+ description Link para o cliente (casa)
+ ip address 200.10.10.1 255.255.255.252
+ no shutdown
+!
+interface GigabitEthernet0/1
+ description Rede dos servidores da Internet
+ ip address 203.0.113.1 255.255.255.0
+ no shutdown
+!
+! DHCP: a operadora entrega o IP publico para o roteador da casa
+ip dhcp excluded-address 200.10.10.1
+ip dhcp pool CLIENTE-CASA
+ network 200.10.10.0 255.255.255.252
+ default-router 200.10.10.1
+ dns-server 203.0.113.10
+!
+end
+write memory
