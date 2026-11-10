@@ -22,7 +22,17 @@ Cada projeto parte de um **problema real**, mostra a **solução** (topologia, e
 - **Serviços:** DHCP, DNS, NAT, HTTP
 - **Segurança:** WPA2, ACLs estendidas, SSH no lugar de Telnet, autenticação OSPF MD5, filtragem DNS
 - **Análise:** captura e leitura de pacotes no Wireshark
-- **Automação:** scripts em Python e PowerShell
+- **Automação:** scripts em Python e PowerShell (simulador de configurações, captura com tshark, testes de DNS)
+
+## Validação automatizada
+
+Os projetos têm testes que rodam com um comando. Resultados da última execução em **[RESULTADOS.md](RESULTADOS.md)**.
+
+```bash
+py ferramentas/simulador_configs.py
+```
+
+O simulador lê as configurações Cisco e confere DHCP, ACLs, SSH e OSPF (inclusive failover). Os scripts de captura (tshark) e de teste de DNS estão descritos em [ferramentas/](ferramentas/).
 
 ## Estrutura de cada projeto
 
